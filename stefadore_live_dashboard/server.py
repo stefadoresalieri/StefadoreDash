@@ -23,7 +23,7 @@ CHANNEL_URL = "https://www.youtube.com/@stefadore/videos"
 CHANNEL_HOME = "https://www.youtube.com/@stefadore"
 REFRESH_INTERVAL_SECONDS = 10 * 60
 HOST = os.environ.get("STEFADORE_DASHBOARD_HOST", "0.0.0.0")
-PORT = int(os.environ.get("STEFADORE_DASHBOARD_PORT", "8787"))
+PORT = int(os.environ.get("PORT") or os.environ.get("STEFADORE_DASHBOARD_PORT", "8787"))
 
 state_lock = threading.Lock()
 refresh_lock = threading.Lock()
