@@ -7,17 +7,17 @@
   <style>
     :root {
       color-scheme: light;
-      --ink: #2c1726;
-      --muted: #7b6473;
-      --line: #efd1dd;
-      --panel: #fffafd;
-      --page: #fff0f6;
-      --red: #d63384;
-      --teal: #a83279;
-      --blue: #7b2cbf;
+      --ink: #13231b;
+      --muted: #617568;
+      --line: #cde7d8;
+      --panel: #fbfffc;
+      --page: #effaf3;
+      --red: #2f855a;
+      --teal: #147d64;
+      --blue: #276749;
       --yellow: #b7791f;
       --green: #2f855a;
-      --shadow: 0 10px 28px rgba(126, 38, 88, 0.12);
+      --shadow: 0 10px 28px rgba(34, 101, 68, 0.12);
     }
 
     * { box-sizing: border-box; }
@@ -174,7 +174,7 @@
       min-height: 24px;
       padding: 0 8px;
       border-radius: 999px;
-      background: #f8ddea;
+      background: #dff5e8;
       color: var(--teal);
       font-size: 12px;
       font-weight: 850;
@@ -272,7 +272,7 @@
 
     .track {
       height: 14px;
-      background: #f8ddea;
+      background: #dff5e8;
       border-radius: 999px;
       overflow: hidden;
     }
@@ -309,7 +309,7 @@
       border: 1px solid var(--line);
       border-radius: 8px;
       padding: 13px;
-      background: #fff5fa;
+      background: #f7fff9;
     }
 
     .comment.reply {
@@ -355,7 +355,7 @@
     }
 
     .axis { stroke: #9aa8b5; stroke-width: 1; }
-    .gridline { stroke: #f4d6e3; stroke-width: 1; }
+    .gridline { stroke: #d5ecdf; stroke-width: 1; }
     .chart-dot { stroke: #fff; stroke-width: 2; }
 
     .legend {
@@ -402,7 +402,7 @@
       color: var(--muted);
       font-size: 11px;
       text-transform: uppercase;
-      background: #fff5fa;
+      background: #f7fff9;
     }
 
     td.num {
@@ -800,10 +800,10 @@
         <line class="axis" x1="${margin.left}" y1="${margin.top + innerHeight}" x2="${margin.left + innerWidth}" y2="${margin.top + innerHeight}"></line>
         <line class="axis" x1="${margin.left}" y1="${margin.top}" x2="${margin.left}" y2="${margin.top + innerHeight}"></line>
         ${[0.25, 0.5, 0.75].map((step) => `<line class="gridline" x1="${margin.left}" y1="${margin.top + innerHeight * step}" x2="${margin.left + innerWidth}" y2="${margin.top + innerHeight * step}"></line>`).join("")}
-        <polyline points="${points("views", yViews)}" fill="none" stroke="#a83279" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"></polyline>
-        <polyline points="${points("likes", yLikes)}" fill="none" stroke="#d63384" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"></polyline>
-        ${sorted.map((row, index) => `<circle class="chart-dot" cx="${x(index)}" cy="${yViews(row.views || 0)}" r="5" fill="#a83279"><title>${formatDate(row.upload_date)} · ${row.views || 0} views · ${row.title}</title></circle>`).join("")}
-        ${sorted.map((row, index) => `<circle class="chart-dot" cx="${x(index)}" cy="${yLikes(row.likes || 0)}" r="4" fill="#d63384"><title>${formatDate(row.upload_date)} · ${row.likes || 0} likes · ${row.title}</title></circle>`).join("")}
+        <polyline points="${points("views", yViews)}" fill="none" stroke="#147d64" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"></polyline>
+        <polyline points="${points("likes", yLikes)}" fill="none" stroke="#2f855a" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"></polyline>
+        ${sorted.map((row, index) => `<circle class="chart-dot" cx="${x(index)}" cy="${yViews(row.views || 0)}" r="5" fill="#147d64"><title>${formatDate(row.upload_date)} · ${row.views || 0} views · ${row.title}</title></circle>`).join("")}
+        ${sorted.map((row, index) => `<circle class="chart-dot" cx="${x(index)}" cy="${yLikes(row.likes || 0)}" r="4" fill="#2f855a"><title>${formatDate(row.upload_date)} · ${row.likes || 0} likes · ${row.title}</title></circle>`).join("")}
         <text x="${margin.left}" y="${height - 8}" font-size="11" fill="#607080">${formatDate(sorted[0].upload_date)}</text>
         <text x="${margin.left + innerWidth}" y="${height - 8}" text-anchor="end" font-size="11" fill="#607080">${formatDate(sorted[sorted.length - 1].upload_date)}</text>
       `;
