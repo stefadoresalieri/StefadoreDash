@@ -149,10 +149,25 @@ def load_csv_bootstrap() -> dict:
 
 def load_initial_state() -> None:
     global state
+    seeded = None
+    if SEED_PATH.exists():
+        try:
+            with SEED_PATH.open("r", encoding="utf-8") as handle:
+                seeded = json.load(handle)
+            seeded["status"] = "ready"
+            seeded["nextRefreshAt"] = None
+            seeded["error"] = "Showing the bundled snapshot until a live refresh succeeds."
+        except Exception:
+            seeded = None
+
     if CACHE_PATH.exists():
         try:
             with CACHE_PATH.open("r", encoding="utf-8") as handle:
                 cached = json.load(handle)
+            if seeded and len(seeded.get("videos") or []) > len(cached.get("videos") or []):
+                with state_lock:
+                    state = seeded
+                return
             cached["status"] = "ready"
             cached["nextRefreshAt"] = None
             with state_lock:
@@ -161,18 +176,10 @@ def load_initial_state() -> None:
         except Exception:
             pass
 
-    if SEED_PATH.exists():
-        try:
-            with SEED_PATH.open("r", encoding="utf-8") as handle:
-                seeded = json.load(handle)
-            seeded["status"] = "ready"
-            seeded["nextRefreshAt"] = None
-            seeded["error"] = "Showing the bundled snapshot until a live refresh succeeds."
-            with state_lock:
-                state = seeded
-            return
-        except Exception:
-            pass
+    if seeded:
+        with state_lock:
+            state = seeded
+        return
 
     bootstrap = load_csv_bootstrap()
     with state_lock:

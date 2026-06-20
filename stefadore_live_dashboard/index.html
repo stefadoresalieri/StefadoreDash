@@ -605,22 +605,6 @@
       short: "Short",
       regular: "Regular"
     };
-    const knownDurations = {
-      iQeaubGuGTw: 78,
-      QzVfUt9qIUE: 136,
-      Z9u1D8NM3fw: 188,
-      mEqK20W3mkU: 138,
-      f_DBlip2gn8: 105,
-      jMlOtynp5sw: 68,
-      eDCNYVc79js: 94,
-      me355jrMehU: 250,
-      "8f1FspsKstI": 60,
-      cndH6Wz_tMo: 183,
-      UHlTIOnDVgc: 15,
-      "U8x-lj_OnCo": 13,
-      q9tqELmPEQI: 9,
-      "3p-4d55g04M": 14
-    };
     const metricClasses = {
       views: "",
       likes: "likes",
@@ -640,14 +624,15 @@
     }
 
     function videoTypeFor(row) {
+      const width = Number(row.width || 0);
+      const height = Number(row.height || 0);
+      if (width > 0 && height > 0) return height > width ? "short" : "regular";
       if (row.video_type === "short" || row.video_type === "regular") return row.video_type;
-      const duration = Number(row.duration_seconds || knownDurations[row.id] || 0);
-      return duration > 0 && duration <= 60 ? "short" : "regular";
+      return "regular";
     }
 
     function normalizeVideo(row) {
-      const duration = Number(row.duration_seconds || knownDurations[row.id] || 0);
-      return { ...row, duration_seconds: duration, video_type: videoTypeFor({ ...row, duration_seconds: duration }) };
+      return { ...row, video_type: videoTypeFor(row) };
     }
 
     function selectedVideoType() {
