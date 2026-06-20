@@ -7,15 +7,15 @@
   <style>
     :root {
       color-scheme: light;
-      --ink: #13231b;
-      --muted: #617568;
-      --line: #cde7d8;
-      --panel: #fbfffc;
-      --page: #effaf3;
-      --red: #2f855a;
-      --teal: #147d64;
-      --blue: #276749;
-      --shadow: 0 10px 28px rgba(34, 101, 68, 0.12);
+      --ink: #2c1726;
+      --muted: #7b6473;
+      --line: #efd1dd;
+      --panel: #fffafd;
+      --page: #fff0f6;
+      --red: #d63384;
+      --teal: #a83279;
+      --blue: #7b2cbf;
+      --shadow: 0 10px 28px rgba(126, 38, 88, 0.12);
     }
 
     * { box-sizing: border-box; }
@@ -109,19 +109,19 @@
     }
 
     .node rect {
-      fill: #f7fff9;
-      stroke: #8bcaa4;
+      fill: #fff7fb;
+      stroke: #d99ab9;
       stroke-width: 2;
       rx: 8;
     }
 
     .node.primary rect {
-      fill: #dff5e8;
+      fill: #fde7f1;
       stroke: var(--red);
     }
 
     .node.host rect {
-      fill: #e8f5ef;
+      fill: #f4e8ff;
       stroke: var(--blue);
     }
 
@@ -166,7 +166,7 @@
       border: 1px solid var(--line);
       border-radius: 8px;
       padding: 14px;
-      background: #f7fff9;
+      background: #fff7fb;
     }
 
     .card h3 {
@@ -214,7 +214,7 @@
           <desc id="diagramDesc">The browser talks to the dashboard page, which calls a Python server. The server reads seed data and can refresh from YouTube or the YouTube API. GitHub sends code to Render for the public site.</desc>
           <defs>
             <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
-              <polygon points="0 0, 10 3.5, 0 7" fill="#147d64"></polygon>
+              <polygon points="0 0, 10 3.5, 0 7" fill="#a83279"></polygon>
             </marker>
           </defs>
 
