@@ -59,6 +59,19 @@
       color: inherit;
     }
 
+    .actions {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .logout-form {
+      display: inline-flex;
+      margin: 0;
+    }
+
     .button {
       display: inline-flex;
       align-items: center;
@@ -70,9 +83,11 @@
       background: var(--panel);
       color: var(--ink);
       text-decoration: none;
+      font: inherit;
       font-size: 13px;
       font-weight: 850;
       box-shadow: 0 3px 10px rgba(18, 31, 45, 0.05);
+      cursor: pointer;
       white-space: nowrap;
     }
 
@@ -188,6 +203,11 @@
         width: 100%;
       }
 
+      .actions,
+      .logout-form {
+        width: 100%;
+      }
+
       .cards {
         grid-template-columns: 1fr;
       }
@@ -201,7 +221,12 @@
         <h1>Dashboard Architecture</h1>
         <p>A phone-friendly map of what talks to what.</p>
       </div>
-      <a class="button" href="/">Back to Dashboard</a>
+      <div class="actions">
+        <a class="button" href="/">Back to Dashboard</a>
+        <form class="logout-form" method="post" action="/logout">
+          <button class="button" type="submit">Sign out</button>
+        </form>
+      </div>
     </header>
 
     <section class="panel">

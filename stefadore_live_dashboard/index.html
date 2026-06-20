@@ -67,6 +67,11 @@
       justify-content: flex-end;
     }
 
+    .logout-form {
+      display: inline-flex;
+      margin: 0;
+    }
+
     button,
     .source-link {
       display: inline-flex;
@@ -497,6 +502,10 @@
         width: 100%;
       }
 
+      .logout-form {
+        width: 100%;
+      }
+
       th:nth-child(2),
       td:nth-child(2) {
         display: none;
@@ -515,6 +524,9 @@
         <button class="primary" id="refreshButton" type="button">Refresh now</button>
         <a class="source-link" href="/architecture">Architecture</a>
         <a class="source-link" href="https://www.youtube.com/@stefadore" target="_blank" rel="noreferrer">Open Channel</a>
+        <form class="logout-form" method="post" action="/logout">
+          <button class="source-link" type="submit">Sign out</button>
+        </form>
       </div>
     </header>
 

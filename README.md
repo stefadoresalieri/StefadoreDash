@@ -39,6 +39,20 @@ Recommended beginner path:
 
 The dashboard reads Render's `PORT` environment variable automatically.
 
+## Password Protection
+
+To require a login before anyone can view the dashboard, add these Render environment variables:
+
+```text
+DASHBOARD_USERNAME=choose_a_username
+DASHBOARD_PASSWORD=choose_a_strong_password
+DASHBOARD_SESSION_SECRET=choose_a_long_random_phrase
+```
+
+`DASHBOARD_PASSWORD` is the switch that turns login protection on. If it is not set, the app stays open, which is useful for local development.
+
+Do not put the password in the code or commit it to GitHub. Store it only in Render's environment variables.
+
 ## Live YouTube Refreshes
 
 The hosted app includes a bundled snapshot so the dashboard can load even when YouTube blocks public scraping from cloud servers.
