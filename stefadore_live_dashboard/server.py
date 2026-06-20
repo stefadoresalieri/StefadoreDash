@@ -8,10 +8,11 @@ import re
 import socket
 import threading
 import time
+import urllib.error
 import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from urllib.parse import urlparse
+from urllib.parse import urlencode, urlparse
 
 from yt_dlp import YoutubeDL
 
@@ -19,8 +20,11 @@ from yt_dlp import YoutubeDL
 ROOT = Path(__file__).resolve().parent
 WORKSPACE = ROOT.parent
 CACHE_PATH = ROOT / "live_cache.json"
+SEED_PATH = ROOT / "seed_data.json"
 CHANNEL_URL = "https://www.youtube.com/@stefadore/videos"
 CHANNEL_HOME = "https://www.youtube.com/@stefadore"
+CHANNEL_ID = os.environ.get("YOUTUBE_CHANNEL_ID", "UCB051uh9yvyZuBJDY9_hyGQ")
+YOUTUBE_API_KEY = os.environ.get("YOUTUBE_API_KEY")
 REFRESH_INTERVAL_SECONDS = 10 * 60
 HOST = os.environ.get("STEFADORE_DASHBOARD_HOST", "0.0.0.0")
 PORT = int(os.environ.get("PORT") or os.environ.get("STEFADORE_DASHBOARD_PORT", "8787"))
@@ -55,6 +59,13 @@ def date_from_timestamp(timestamp) -> str:
     if not timestamp:
         return ""
     return dt.datetime.fromtimestamp(timestamp, dt.timezone.utc).date().isoformat()
+
+
+def upload_date_from_iso(raw: str | None) -> str:
+    if not raw:
+        return ""
+    parsed = dt.datetime.fromisoformat(raw.replace("Z", "+00:00"))
+    return parsed.strftime("%Y%m%d")
 
 
 def compute_totals(videos: list[dict], comments: list[dict]) -> dict:
@@ -133,9 +144,146 @@ def load_initial_state() -> None:
         except Exception:
             pass
 
+    if SEED_PATH.exists():
+        try:
+            with SEED_PATH.open("r", encoding="utf-8") as handle:
+                seeded = json.load(handle)
+            seeded["status"] = "ready"
+            seeded["nextRefreshAt"] = None
+            seeded["error"] = "Showing the bundled snapshot until a live refresh succeeds."
+            with state_lock:
+                state = seeded
+            return
+        except Exception:
+            pass
+
     bootstrap = load_csv_bootstrap()
     with state_lock:
         state = bootstrap
+
+
+def api_get_json(path: str, params: dict) -> dict:
+    if not YOUTUBE_API_KEY:
+        raise RuntimeError("Set YOUTUBE_API_KEY in Render to enable live YouTube refreshes.")
+
+    query = urlencode({**params, "key": YOUTUBE_API_KEY})
+    request = urllib.request.Request(f"https://www.googleapis.com/youtube/v3/{path}?{query}")
+    with urllib.request.urlopen(request, timeout=30) as response:
+        return json.loads(response.read().decode("utf-8"))
+
+
+def collect_api_comments(video_id: str, video_title: str) -> list[dict]:
+    comments = []
+    page_token = None
+    while True:
+        params = {
+            "part": "snippet,replies",
+            "videoId": video_id,
+            "maxResults": 100,
+            "textFormat": "plainText",
+            "order": "time",
+        }
+        if page_token:
+            params["pageToken"] = page_token
+        try:
+            data = api_get_json("commentThreads", params)
+        except urllib.error.HTTPError as exc:
+            if exc.code in (403, 404):
+                return comments
+            raise
+
+        for item in data.get("items", []):
+            top = item.get("snippet", {}).get("topLevelComment", {}).get("snippet", {})
+            comments.append(
+                {
+                    "video_title": video_title,
+                    "video_id": video_id,
+                    "video_url": f"https://www.youtube.com/watch?v={video_id}",
+                    "author": top.get("authorDisplayName") or "",
+                    "date": (top.get("publishedAt") or "")[:10],
+                    "likes": int(top.get("likeCount") or 0),
+                    "parent": "root",
+                    "text": top.get("textDisplay") or top.get("textOriginal") or "",
+                }
+            )
+
+            for reply in item.get("replies", {}).get("comments", []):
+                snippet = reply.get("snippet", {})
+                comments.append(
+                    {
+                        "video_title": video_title,
+                        "video_id": video_id,
+                        "video_url": f"https://www.youtube.com/watch?v={video_id}",
+                        "author": snippet.get("authorDisplayName") or "",
+                        "date": (snippet.get("publishedAt") or "")[:10],
+                        "likes": int(snippet.get("likeCount") or 0),
+                        "parent": item.get("id") or "root",
+                        "text": snippet.get("textDisplay") or snippet.get("textOriginal") or "",
+                    }
+                )
+
+        page_token = data.get("nextPageToken")
+        if not page_token:
+            break
+    return comments
+
+
+def collect_api_data() -> dict:
+    channel_data = api_get_json("channels", {"part": "contentDetails", "id": CHANNEL_ID})
+    channel_items = channel_data.get("items") or []
+    if not channel_items:
+        raise RuntimeError(f"YouTube API could not find channel {CHANNEL_ID}.")
+
+    uploads_playlist = channel_items[0]["contentDetails"]["relatedPlaylists"]["uploads"]
+    video_ids = []
+    page_token = None
+    while True:
+        params = {"part": "contentDetails", "playlistId": uploads_playlist, "maxResults": 50}
+        if page_token:
+            params["pageToken"] = page_token
+        page = api_get_json("playlistItems", params)
+        video_ids.extend(
+            item.get("contentDetails", {}).get("videoId")
+            for item in page.get("items", [])
+            if item.get("contentDetails", {}).get("videoId")
+        )
+        page_token = page.get("nextPageToken")
+        if not page_token:
+            break
+
+    videos = []
+    comments = []
+    for offset in range(0, len(video_ids), 50):
+        details = api_get_json(
+            "videos",
+            {"part": "snippet,statistics", "id": ",".join(video_ids[offset : offset + 50])},
+        )
+        for item in details.get("items", []):
+            video_id = item["id"]
+            snippet = item.get("snippet", {})
+            stats = item.get("statistics", {})
+            title = snippet.get("title") or ""
+            video_comments = collect_api_comments(video_id, title)
+            comments.extend(video_comments)
+            upload_date = upload_date_from_iso(snippet.get("publishedAt"))
+            videos.append(
+                {
+                    "upload_date": upload_date,
+                    "date": date_from_upload(upload_date),
+                    "id": video_id,
+                    "title": title,
+                    "views": int(stats.get("viewCount") or 0),
+                    "likes": int(stats.get("likeCount") or 0),
+                    "comment_count": int(stats.get("commentCount") or len(video_comments)),
+                    "url": f"https://www.youtube.com/watch?v={video_id}",
+                    "comment_likes": sum(comment["likes"] for comment in video_comments),
+                }
+            )
+
+    videos.sort(key=lambda item: item.get("upload_date") or "", reverse=True)
+    comments.sort(key=lambda item: (item.get("video_title") or "", item.get("parent") != "root", item.get("author") or ""))
+
+    return build_refreshed_payload(videos, comments, error=None)
 
 
 def fetch_like_count(video_id: str) -> int | None:
@@ -152,7 +300,21 @@ def fetch_like_count(video_id: str) -> int | None:
     return int(match.group(1).replace(",", ""))
 
 
-def collect_live_data() -> dict:
+def build_refreshed_payload(videos: list[dict], comments: list[dict], error: str | None) -> dict:
+    return {
+        "status": "ready",
+        "channelUrl": CHANNEL_HOME,
+        "lastUpdated": iso_now(),
+        "nextRefreshAt": (dt.datetime.now(dt.timezone.utc) + dt.timedelta(seconds=REFRESH_INTERVAL_SECONDS)).isoformat(),
+        "refreshIntervalSeconds": REFRESH_INTERVAL_SECONDS,
+        "error": error,
+        "totals": compute_totals(videos, comments),
+        "videos": videos,
+        "comments": comments,
+    }
+
+
+def collect_scraped_data() -> dict:
     flat_options = {
         "quiet": True,
         "no_warnings": True,
@@ -220,21 +382,22 @@ def collect_live_data() -> dict:
     videos.sort(key=lambda item: item.get("upload_date") or "", reverse=True)
     comments.sort(key=lambda item: (item.get("video_title") or "", item.get("parent") != "root", item.get("author") or ""))
 
-    refreshed = {
-        "status": "ready",
-        "channelUrl": CHANNEL_HOME,
-        "lastUpdated": iso_now(),
-        "nextRefreshAt": (dt.datetime.now(dt.timezone.utc) + dt.timedelta(seconds=REFRESH_INTERVAL_SECONDS)).isoformat(),
-        "refreshIntervalSeconds": REFRESH_INTERVAL_SECONDS,
-        "error": None,
-        "totals": compute_totals(videos, comments),
-        "videos": videos,
-        "comments": comments,
-    }
+    if not videos:
+        raise RuntimeError("YouTube blocked the public scraper. Set YOUTUBE_API_KEY in Render for reliable hosted refreshes.")
+
+    refreshed = build_refreshed_payload(videos, comments, error=None)
+
+    return refreshed
+
+
+def collect_live_data() -> dict:
+    if YOUTUBE_API_KEY:
+        refreshed = collect_api_data()
+    else:
+        refreshed = collect_scraped_data()
 
     with CACHE_PATH.open("w", encoding="utf-8") as handle:
         json.dump(refreshed, handle, ensure_ascii=False, indent=2)
-
     return refreshed
 
 
@@ -253,7 +416,7 @@ def refresh_data(force: bool = False) -> bool:
                 state = refreshed
         except Exception as exc:
             with state_lock:
-                state["status"] = "error"
+                state["status"] = "ready" if state.get("videos") else "error"
                 state["error"] = str(exc)
                 state["nextRefreshAt"] = (dt.datetime.now(dt.timezone.utc) + dt.timedelta(seconds=REFRESH_INTERVAL_SECONDS)).isoformat()
         finally:

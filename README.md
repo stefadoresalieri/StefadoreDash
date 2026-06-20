@@ -32,3 +32,15 @@ Recommended beginner path:
 5. Deploy and open the public Render URL.
 
 The dashboard reads Render's `PORT` environment variable automatically.
+
+## Live YouTube Refreshes
+
+The hosted app includes a bundled snapshot so the dashboard can load even when YouTube blocks public scraping from cloud servers.
+
+For reliable live refreshes on Render, add an environment variable:
+
+```text
+YOUTUBE_API_KEY=your_google_youtube_data_api_key
+```
+
+Without this key, the app may show a message that YouTube blocked the public scraper, but the dashboard will keep serving the bundled snapshot instead of going blank.
