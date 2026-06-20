@@ -1,0 +1,328 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Stefadore Dashboard Architecture</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #2c1726;
+      --muted: #7b6473;
+      --line: #efd1dd;
+      --panel: #fffafd;
+      --page: #fff0f6;
+      --red: #d63384;
+      --teal: #a83279;
+      --blue: #7b2cbf;
+      --shadow: 0 10px 28px rgba(126, 38, 88, 0.12);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: Inter, Segoe UI, Roboto, Arial, sans-serif;
+      background: var(--page);
+      color: var(--ink);
+      letter-spacing: 0;
+    }
+
+    .shell {
+      width: min(1120px, calc(100% - 28px));
+      margin: 0 auto;
+      padding: 26px 0 40px;
+    }
+
+    header {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+
+    h1 {
+      margin: 0 0 6px;
+      font-size: clamp(26px, 3vw, 38px);
+      line-height: 1.05;
+      font-weight: 850;
+    }
+
+    p {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    a {
+      color: inherit;
+    }
+
+    .button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 40px;
+      padding: 0 14px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+      color: var(--ink);
+      text-decoration: none;
+      font-size: 13px;
+      font-weight: 850;
+      box-shadow: 0 3px 10px rgba(18, 31, 45, 0.05);
+      white-space: nowrap;
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      margin-bottom: 16px;
+    }
+
+    .panel-head {
+      padding: 16px 18px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    h2 {
+      margin: 0;
+      font-size: 17px;
+      line-height: 1.2;
+    }
+
+    .diagram-wrap {
+      overflow-x: auto;
+      padding: 16px;
+    }
+
+    svg {
+      display: block;
+      min-width: 860px;
+      width: 100%;
+      height: auto;
+    }
+
+    .node rect {
+      fill: #fff7fb;
+      stroke: #d99ab9;
+      stroke-width: 2;
+      rx: 8;
+    }
+
+    .node.primary rect {
+      fill: #fde7f1;
+      stroke: var(--red);
+    }
+
+    .node.host rect {
+      fill: #f4e8ff;
+      stroke: var(--blue);
+    }
+
+    .node.data rect {
+      fill: #fff4dd;
+      stroke: #b7791f;
+    }
+
+    .node text {
+      fill: var(--ink);
+      font-size: 14px;
+      font-weight: 800;
+    }
+
+    .node .small {
+      fill: var(--muted);
+      font-size: 12px;
+      font-weight: 650;
+    }
+
+    .arrow {
+      stroke: var(--teal);
+      stroke-width: 2.4;
+      fill: none;
+      marker-end: url(#arrowhead);
+    }
+
+    .label {
+      fill: var(--muted);
+      font-size: 12px;
+      font-weight: 750;
+    }
+
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+      padding: 16px;
+    }
+
+    .card {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 14px;
+      background: #fff7fb;
+    }
+
+    .card h3 {
+      margin: 0 0 8px;
+      font-size: 15px;
+    }
+
+    .card p {
+      font-size: 13px;
+    }
+
+    @media (max-width: 760px) {
+      header {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .button {
+        width: 100%;
+      }
+
+      .cards {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header>
+      <div>
+        <h1>Dashboard Architecture</h1>
+        <p>A phone-friendly map of what talks to what.</p>
+      </div>
+      <a class="button" href="/">Back to Dashboard</a>
+    </header>
+
+    <section class="panel">
+      <div class="panel-head">
+        <h2>System Map</h2>
+      </div>
+      <div class="diagram-wrap" aria-label="Architecture diagram">
+        <svg viewBox="0 0 1040 620" role="img" aria-labelledby="diagramTitle diagramDesc">
+          <title id="diagramTitle">Stefadore dashboard architecture</title>
+          <desc id="diagramDesc">The browser talks to the dashboard page, which calls a Python server. The server reads seed data and can refresh from YouTube or the YouTube API. GitHub sends code to Render for the public site.</desc>
+          <defs>
+            <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+              <polygon points="0 0, 10 3.5, 0 7" fill="#a83279"></polygon>
+            </marker>
+          </defs>
+
+          <g class="node primary" transform="translate(40 60)">
+            <rect width="180" height="82"></rect>
+            <text x="18" y="32">You</text>
+            <text class="small" x="18" y="55">phone or computer</text>
+          </g>
+
+          <g class="node primary" transform="translate(320 60)">
+            <rect width="210" height="82"></rect>
+            <text x="18" y="32">Dashboard Page</text>
+            <text class="small" x="18" y="55">index.html in browser</text>
+          </g>
+
+          <g class="node host" transform="translate(680 24)">
+            <rect width="250" height="86"></rect>
+            <text x="18" y="32">Render Public App</text>
+            <text class="small" x="18" y="55">stefadoredash.onrender.com</text>
+          </g>
+
+          <g class="node host" transform="translate(680 150)">
+            <rect width="250" height="86"></rect>
+            <text x="18" y="32">Local App</text>
+            <text class="small" x="18" y="55">127.0.0.1:8787 on PC</text>
+          </g>
+
+          <g class="node" transform="translate(320 255)">
+            <rect width="210" height="86"></rect>
+            <text x="18" y="32">Python Server</text>
+            <text class="small" x="18" y="55">server.py serves data</text>
+          </g>
+
+          <g class="node data" transform="translate(40 420)">
+            <rect width="220" height="92"></rect>
+            <text x="18" y="32">Seed Snapshot</text>
+            <text class="small" x="18" y="55">seed_data.json</text>
+            <text class="small" x="18" y="74">80 videos included</text>
+          </g>
+
+          <g class="node data" transform="translate(320 420)">
+            <rect width="220" height="92"></rect>
+            <text x="18" y="32">YouTube Sources</text>
+            <text class="small" x="18" y="55">Videos tab + Shorts tab</text>
+            <text class="small" x="18" y="74">public channel data</text>
+          </g>
+
+          <g class="node data" transform="translate(620 420)">
+            <rect width="220" height="92"></rect>
+            <text x="18" y="32">YouTube API</text>
+            <text class="small" x="18" y="55">optional API key</text>
+            <text class="small" x="18" y="74">reliable live refresh</text>
+          </g>
+
+          <g class="node host" transform="translate(40 255)">
+            <rect width="220" height="86"></rect>
+            <text x="18" y="32">GitHub Repo</text>
+            <text class="small" x="18" y="55">stores the code</text>
+          </g>
+
+          <path class="arrow" d="M220 101 H320"></path>
+          <text class="label" x="240" y="91">opens</text>
+
+          <path class="arrow" d="M530 82 C585 60 620 58 680 66"></path>
+          <text class="label" x="566" y="54">public URL</text>
+
+          <path class="arrow" d="M530 122 C585 145 620 170 680 190"></path>
+          <text class="label" x="556" y="164">local URL</text>
+
+          <path class="arrow" d="M805 110 V150"></path>
+          <path class="arrow" d="M680 193 C610 210 555 238 530 270"></path>
+          <path class="arrow" d="M445 142 V255"></path>
+          <text class="label" x="456" y="205">GET /api/data</text>
+
+          <path class="arrow" d="M260 298 H320"></path>
+          <text class="label" x="270" y="287">deploys</text>
+
+          <path class="arrow" d="M382 341 C300 372 220 392 175 420"></path>
+          <text class="label" x="222" y="380">fallback data</text>
+
+          <path class="arrow" d="M425 341 V420"></path>
+          <text class="label" x="436" y="384">public scrape</text>
+
+          <path class="arrow" d="M520 310 C620 330 700 375 730 420"></path>
+          <text class="label" x="626" y="355">live refresh</text>
+        </svg>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head">
+        <h2>How To Read It</h2>
+      </div>
+      <div class="cards">
+        <article class="card">
+          <h3>GitHub Stores</h3>
+          <p>GitHub is the versioned home for the dashboard code. When code is pushed there, Render can redeploy it.</p>
+        </article>
+        <article class="card">
+          <h3>Render Runs</h3>
+          <p>Render hosts the public dashboard. It runs the Python server so your phone can open it anywhere.</p>
+        </article>
+        <article class="card">
+          <h3>YouTube Supplies</h3>
+          <p>YouTube is the data source. The bundled snapshot works immediately; an API key makes live refreshes more reliable.</p>
+        </article>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

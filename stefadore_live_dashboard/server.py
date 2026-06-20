@@ -501,6 +501,9 @@ class LiveDashboardHandler(BaseHTTPRequestHandler):
         if parsed.path in ("/", "/index.html"):
             self.send_file(ROOT / "index.html", "text/html; charset=utf-8")
             return
+        if parsed.path == "/architecture":
+            self.send_file(ROOT / "architecture.html", "text/html; charset=utf-8")
+            return
         if parsed.path == "/api/data":
             with state_lock:
                 payload = json.loads(json.dumps(state))
