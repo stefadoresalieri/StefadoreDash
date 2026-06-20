@@ -143,9 +143,42 @@
 
     .stats {
       display: grid;
-      grid-template-columns: repeat(5, minmax(0, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(145px, 1fr));
       gap: 12px;
       margin-bottom: 16px;
+    }
+
+    .filters {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      margin-bottom: 16px;
+      padding: 12px 14px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+      box-shadow: var(--shadow);
+    }
+
+    .filter-label {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 850;
+      text-transform: uppercase;
+    }
+
+    .type-badge {
+      display: inline-flex;
+      align-items: center;
+      min-height: 24px;
+      padding: 0 8px;
+      border-radius: 999px;
+      background: #f8ddea;
+      color: var(--teal);
+      font-size: 12px;
+      font-weight: 850;
+      white-space: nowrap;
     }
 
     .stat,
@@ -431,7 +464,8 @@
       }
 
       .panel-head,
-      .status-bar {
+      .status-bar,
+      .filters {
         align-items: flex-start;
         flex-direction: column;
       }
@@ -471,8 +505,19 @@
       <div id="timeText">Waiting for first update</div>
     </section>
 
+    <section class="filters" aria-label="Dashboard filters">
+      <span class="filter-label">Video Type</span>
+      <select id="videoTypeFilter" aria-label="Video type filter">
+        <option value="all">All videos</option>
+        <option value="short">Shorts</option>
+        <option value="regular">Regular videos</option>
+      </select>
+    </section>
+
     <section class="stats" aria-label="Channel totals">
       <article class="stat"><span class="label">Videos</span><span class="value" id="totalVideos">0</span></article>
+      <article class="stat"><span class="label">Shorts</span><span class="value" id="totalShorts">0</span></article>
+      <article class="stat"><span class="label">Regular</span><span class="value" id="totalRegular">0</span></article>
       <article class="stat"><span class="label">Views</span><span class="value" id="totalViews">0</span></article>
       <article class="stat"><span class="label">Video Likes</span><span class="value" id="totalLikes">0</span></article>
       <article class="stat"><span class="label">Comments</span><span class="value" id="totalComments">0</span></article>
@@ -527,6 +572,7 @@
         <thead>
           <tr>
             <th>Video</th>
+            <th>Type</th>
             <th>Date</th>
             <th>Views</th>
             <th>Likes</th>
@@ -542,6 +588,8 @@
   </main>
 
   <script>
+    let allVideos = [];
+    let allComments = [];
     let videos = [];
     let comments = [];
     let statusPayload = null;
@@ -551,6 +599,27 @@
       likes: "likes",
       comment_count: "comments",
       comment_likes: "comment likes"
+    };
+
+    const videoTypeLabels = {
+      short: "Short",
+      regular: "Regular"
+    };
+    const knownDurations = {
+      iQeaubGuGTw: 78,
+      QzVfUt9qIUE: 136,
+      Z9u1D8NM3fw: 188,
+      mEqK20W3mkU: 138,
+      f_DBlip2gn8: 105,
+      jMlOtynp5sw: 68,
+      eDCNYVc79js: 94,
+      me355jrMehU: 250,
+      "8f1FspsKstI": 60,
+      cndH6Wz_tMo: 183,
+      UHlTIOnDVgc: 15,
+      "U8x-lj_OnCo": 13,
+      q9tqELmPEQI: 9,
+      "3p-4d55g04M": 14
     };
     const metricClasses = {
       views: "",
@@ -568,6 +637,40 @@
     function formatTime(raw) {
       if (!raw) return "Using saved data until the first live refresh finishes";
       return new Date(raw).toLocaleString([], { dateStyle: "medium", timeStyle: "short" });
+    }
+
+    function videoTypeFor(row) {
+      if (row.video_type === "short" || row.video_type === "regular") return row.video_type;
+      const duration = Number(row.duration_seconds || knownDurations[row.id] || 0);
+      return duration > 0 && duration <= 60 ? "short" : "regular";
+    }
+
+    function normalizeVideo(row) {
+      const duration = Number(row.duration_seconds || knownDurations[row.id] || 0);
+      return { ...row, duration_seconds: duration, video_type: videoTypeFor({ ...row, duration_seconds: duration }) };
+    }
+
+    function selectedVideoType() {
+      return document.getElementById("videoTypeFilter").value;
+    }
+
+    function applyVideoTypeFilter() {
+      const type = selectedVideoType();
+      videos = allVideos.filter((row) => type === "all" || row.video_type === type);
+      const visibleVideoIds = new Set(videos.map((row) => row.id));
+      comments = allComments.filter((comment) => visibleVideoIds.has(comment.video_id));
+    }
+
+    function calculateVisibleTotals() {
+      return {
+        videos: videos.length,
+        shorts: videos.filter((row) => row.video_type === "short").length,
+        regular: videos.filter((row) => row.video_type === "regular").length,
+        views: videos.reduce((sum, row) => sum + Number(row.views || 0), 0),
+        likes: videos.reduce((sum, row) => sum + Number(row.likes || 0), 0),
+        comments: videos.reduce((sum, row) => sum + Number(row.comment_count || 0), 0),
+        commentLikes: comments.reduce((sum, comment) => sum + Number(comment.likes || 0), 0)
+      };
     }
 
     function setStatus(payload) {
@@ -595,6 +698,8 @@
 
     function renderTotals(totals) {
       document.getElementById("totalVideos").textContent = formatNumber.format(totals.videos || 0);
+      document.getElementById("totalShorts").textContent = formatNumber.format(totals.shorts || 0);
+      document.getElementById("totalRegular").textContent = formatNumber.format(totals.regular || 0);
       document.getElementById("totalViews").textContent = formatNumber.format(totals.views || 0);
       document.getElementById("totalLikes").textContent = formatNumber.format(totals.likes || 0);
       document.getElementById("totalComments").textContent = formatNumber.format(totals.comments || 0);
@@ -725,6 +830,7 @@
         const tr = document.createElement("tr");
         tr.innerHTML = `
           <td><a href="${row.url}" target="_blank" rel="noreferrer"></a></td>
+          <td><span class="type-badge">${videoTypeLabels[row.video_type] || "Regular"}</span></td>
           <td>${formatDate(row.upload_date || row.date)}</td>
           <td class="num">${formatNumber.format(row.views || 0)}</td>
           <td class="num">${formatNumber.format(row.likes || 0)}</td>
@@ -736,16 +842,21 @@
       }
     }
 
-    function renderAll(payload) {
-      statusPayload = payload;
-      videos = payload.videos || [];
-      comments = payload.comments || [];
-      setStatus(payload);
-      renderTotals(payload.totals || {});
+    function renderFilteredViews() {
+      renderTotals(calculateVisibleTotals());
       renderRanking(document.getElementById("metricSelect").value);
       renderComments(document.getElementById("commentFilter").value);
       renderTimeline();
       renderTable();
+    }
+
+    function renderAll(payload) {
+      statusPayload = payload;
+      allVideos = (payload.videos || []).map(normalizeVideo);
+      allComments = payload.comments || [];
+      applyVideoTypeFilter();
+      setStatus(payload);
+      renderFilteredViews();
     }
 
     async function loadData() {
@@ -772,6 +883,10 @@
       }
     }
 
+    document.getElementById("videoTypeFilter").addEventListener("change", () => {
+      applyVideoTypeFilter();
+      renderFilteredViews();
+    });
     document.getElementById("metricSelect").addEventListener("change", (event) => renderRanking(event.target.value));
     document.getElementById("commentFilter").addEventListener("change", (event) => renderComments(event.target.value));
     document.getElementById("refreshButton").addEventListener("click", refreshNow);

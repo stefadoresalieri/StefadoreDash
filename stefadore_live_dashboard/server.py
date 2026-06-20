@@ -25,6 +25,7 @@ CHANNEL_URL = "https://www.youtube.com/@stefadore/videos"
 CHANNEL_HOME = "https://www.youtube.com/@stefadore"
 CHANNEL_ID = os.environ.get("YOUTUBE_CHANNEL_ID", "UCB051uh9yvyZuBJDY9_hyGQ")
 YOUTUBE_API_KEY = os.environ.get("YOUTUBE_API_KEY")
+ALLOW_PUBLIC_YOUTUBE_SCRAPER = os.environ.get("ALLOW_PUBLIC_YOUTUBE_SCRAPER", "false").lower() == "true"
 REFRESH_INTERVAL_SECONDS = 10 * 60
 HOST = os.environ.get("STEFADORE_DASHBOARD_HOST", "0.0.0.0")
 PORT = int(os.environ.get("PORT") or os.environ.get("STEFADORE_DASHBOARD_PORT", "8787"))
@@ -68,6 +69,20 @@ def upload_date_from_iso(raw: str | None) -> str:
     return parsed.strftime("%Y%m%d")
 
 
+def duration_seconds_from_iso(raw: str | None) -> int:
+    if not raw:
+        return 0
+    match = re.fullmatch(r"PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?", raw)
+    if not match:
+        return 0
+    hours, minutes, seconds = (int(part or 0) for part in match.groups())
+    return hours * 3600 + minutes * 60 + seconds
+
+
+def video_type_from_duration(duration_seconds: int | None) -> str:
+    return "short" if duration_seconds and duration_seconds <= 60 else "regular"
+
+
 def compute_totals(videos: list[dict], comments: list[dict]) -> dict:
     return {
         "videos": len(videos),
@@ -98,6 +113,8 @@ def load_csv_bootstrap() -> dict:
                         "comment_count": int(row.get("comment_count") or 0),
                         "url": row.get("url") or "",
                         "comment_likes": int(row.get("comment_likes") or 0),
+                        "duration_seconds": int(row.get("duration_seconds") or 0),
+                        "video_type": row.get("video_type") or "regular",
                     }
                 )
 
@@ -256,22 +273,26 @@ def collect_api_data() -> dict:
     for offset in range(0, len(video_ids), 50):
         details = api_get_json(
             "videos",
-            {"part": "snippet,statistics", "id": ",".join(video_ids[offset : offset + 50])},
+            {"part": "snippet,statistics,contentDetails", "id": ",".join(video_ids[offset : offset + 50])},
         )
         for item in details.get("items", []):
             video_id = item["id"]
             snippet = item.get("snippet", {})
             stats = item.get("statistics", {})
+            content_details = item.get("contentDetails", {})
             title = snippet.get("title") or ""
             video_comments = collect_api_comments(video_id, title)
             comments.extend(video_comments)
             upload_date = upload_date_from_iso(snippet.get("publishedAt"))
+            duration_seconds = duration_seconds_from_iso(content_details.get("duration"))
             videos.append(
                 {
                     "upload_date": upload_date,
                     "date": date_from_upload(upload_date),
                     "id": video_id,
                     "title": title,
+                    "duration_seconds": duration_seconds,
+                    "video_type": video_type_from_duration(duration_seconds),
                     "views": int(stats.get("viewCount") or 0),
                     "likes": int(stats.get("likeCount") or 0),
                     "comment_count": int(stats.get("commentCount") or len(video_comments)),
@@ -365,12 +386,15 @@ def collect_scraped_data() -> dict:
                 video_comments.append(clean_comment)
 
             upload_date = info.get("upload_date") or entry.get("upload_date") or ""
+            duration_seconds = int(info.get("duration") or entry.get("duration") or 0)
             videos.append(
                 {
                     "upload_date": upload_date,
                     "date": date_from_upload(upload_date),
                     "id": video_id,
                     "title": info.get("title") or entry.get("title") or "",
+                    "duration_seconds": duration_seconds,
+                    "video_type": video_type_from_duration(duration_seconds),
                     "views": int(info.get("view_count") or 0),
                     "likes": int(like_count or 0),
                     "comment_count": int(info.get("comment_count") or len(video_comments)),
@@ -393,8 +417,10 @@ def collect_scraped_data() -> dict:
 def collect_live_data() -> dict:
     if YOUTUBE_API_KEY:
         refreshed = collect_api_data()
-    else:
+    elif ALLOW_PUBLIC_YOUTUBE_SCRAPER:
         refreshed = collect_scraped_data()
+    else:
+        raise RuntimeError("Live refresh is paused until YOUTUBE_API_KEY is added in Render.")
 
     with CACHE_PATH.open("w", encoding="utf-8") as handle:
         json.dump(refreshed, handle, ensure_ascii=False, indent=2)

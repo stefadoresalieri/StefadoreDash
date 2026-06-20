@@ -2,6 +2,12 @@
 
 Live YouTube engagement dashboard for the Stefadore channel.
 
+The dashboard can filter the visible data by video type:
+
+- All videos
+- Shorts
+- Regular videos
+
 ## Local Preview
 
 From the repo root:
@@ -44,3 +50,9 @@ YOUTUBE_API_KEY=your_google_youtube_data_api_key
 ```
 
 Without this key, the app may show a message that YouTube blocked the public scraper, but the dashboard will keep serving the bundled snapshot instead of going blank.
+
+Public scraping is disabled by default on hosted deployments to avoid YouTube bot-check errors in the logs. If you need to test the fallback scraper locally, set:
+
+```text
+ALLOW_PUBLIC_YOUTUBE_SCRAPER=true
+```
