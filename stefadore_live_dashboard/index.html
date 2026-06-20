@@ -1,0 +1,783 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Stefadore Live Dashboard</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #2c1726;
+      --muted: #7b6473;
+      --line: #efd1dd;
+      --panel: #fffafd;
+      --page: #fff0f6;
+      --red: #d63384;
+      --teal: #a83279;
+      --blue: #7b2cbf;
+      --yellow: #b7791f;
+      --green: #2f855a;
+      --shadow: 0 10px 28px rgba(126, 38, 88, 0.12);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: Inter, Segoe UI, Roboto, Arial, sans-serif;
+      background: var(--page);
+      color: var(--ink);
+      letter-spacing: 0;
+    }
+
+    a { color: inherit; }
+
+    .shell {
+      width: min(1180px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 28px 0 40px;
+    }
+
+    header {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 18px;
+      margin-bottom: 18px;
+    }
+
+    h1 {
+      margin: 0 0 6px;
+      font-size: clamp(26px, 3vw, 38px);
+      line-height: 1.05;
+      font-weight: 850;
+    }
+
+    .subhead {
+      margin: 0;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .actions {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    button,
+    .source-link {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 40px;
+      padding: 0 14px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+      color: var(--ink);
+      text-decoration: none;
+      font: inherit;
+      font-size: 13px;
+      font-weight: 800;
+      box-shadow: 0 3px 10px rgba(18, 31, 45, 0.05);
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    button.primary {
+      background: var(--red);
+      border-color: var(--red);
+      color: #fff;
+    }
+
+    button:disabled {
+      cursor: wait;
+      opacity: 0.64;
+    }
+
+    .status-bar {
+      display: flex;
+      justify-content: space-between;
+      gap: 14px;
+      align-items: center;
+      min-height: 42px;
+      margin-bottom: 16px;
+      padding: 10px 14px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+      box-shadow: var(--shadow);
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .status {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--ink);
+      font-weight: 800;
+    }
+
+    .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--green);
+    }
+
+    .dot.refreshing {
+      background: var(--yellow);
+      animation: pulse 1.2s ease-in-out infinite;
+    }
+
+    .dot.error { background: var(--red); }
+
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); opacity: 0.75; }
+      50% { transform: scale(1.35); opacity: 1; }
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .stat,
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+    }
+
+    .stat {
+      padding: 16px;
+    }
+
+    .stat .label {
+      color: var(--muted);
+      font-size: 12px;
+      text-transform: uppercase;
+      font-weight: 850;
+    }
+
+    .stat .value {
+      display: block;
+      margin-top: 9px;
+      font-size: 30px;
+      line-height: 1;
+      font-weight: 850;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.4fr) minmax(320px, 0.8fr);
+      gap: 16px;
+      align-items: start;
+    }
+
+    .panel {
+      overflow: hidden;
+    }
+
+    .panel-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      padding: 16px 18px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    h2 {
+      margin: 0;
+      font-size: 16px;
+      line-height: 1.2;
+    }
+
+    select {
+      min-height: 36px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 0 34px 0 10px;
+      background: #fff;
+      color: var(--ink);
+      font: inherit;
+      font-size: 13px;
+    }
+
+    .chart {
+      display: grid;
+      gap: 13px;
+      padding: 18px;
+    }
+
+    .bar-row {
+      display: grid;
+      grid-template-columns: minmax(180px, 1fr) minmax(190px, 1.45fr) 80px;
+      gap: 12px;
+      align-items: center;
+      min-height: 38px;
+    }
+
+    .video-title {
+      min-width: 0;
+      color: var(--ink);
+      font-size: 13px;
+      font-weight: 750;
+      line-height: 1.25;
+      text-decoration: none;
+    }
+
+    .video-title:hover { text-decoration: underline; }
+
+    .track {
+      height: 14px;
+      background: #f8ddea;
+      border-radius: 999px;
+      overflow: hidden;
+    }
+
+    .fill {
+      width: 0;
+      min-width: 2px;
+      height: 100%;
+      border-radius: 999px;
+      background: var(--teal);
+      transition: width 220ms ease;
+    }
+
+    .fill.likes { background: var(--red); }
+    .fill.comments { background: var(--yellow); }
+
+    .metric {
+      color: var(--muted);
+      font-size: 13px;
+      font-variant-numeric: tabular-nums;
+      text-align: right;
+      white-space: nowrap;
+    }
+
+    .comments {
+      display: grid;
+      gap: 12px;
+      padding: 16px;
+      max-height: 556px;
+      overflow: auto;
+    }
+
+    .comment {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 13px;
+      background: #fff5fa;
+    }
+
+    .comment.reply {
+      border-left: 4px solid var(--teal);
+    }
+
+    .comment-top {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 8px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .author {
+      color: var(--ink);
+      font-weight: 850;
+    }
+
+    .comment p {
+      margin: 0 0 10px;
+      font-size: 14px;
+      line-height: 1.45;
+    }
+
+    .comment-video {
+      color: var(--blue);
+      font-size: 12px;
+      font-weight: 800;
+      line-height: 1.3;
+      text-decoration: none;
+    }
+
+    .timeline {
+      padding: 16px 18px 20px;
+    }
+
+    .timeline svg {
+      display: block;
+      width: 100%;
+      height: 250px;
+    }
+
+    .axis { stroke: #9aa8b5; stroke-width: 1; }
+    .gridline { stroke: #f4d6e3; stroke-width: 1; }
+    .chart-dot { stroke: #fff; stroke-width: 2; }
+
+    .legend {
+      display: flex;
+      gap: 14px;
+      flex-wrap: wrap;
+      color: var(--muted);
+      font-size: 12px;
+      padding-top: 12px;
+    }
+
+    .legend span {
+      display: inline-flex;
+      gap: 6px;
+      align-items: center;
+    }
+
+    .swatch {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--teal);
+    }
+
+    .swatch.likes { background: var(--red); }
+
+    .table-panel { margin-top: 16px; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+
+    th,
+    td {
+      padding: 11px 12px;
+      border-bottom: 1px solid var(--line);
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      color: var(--muted);
+      font-size: 11px;
+      text-transform: uppercase;
+      background: #fff5fa;
+    }
+
+    td.num {
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+    }
+
+    .empty {
+      padding: 20px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .note {
+      margin: 14px 2px 0;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    @media (max-width: 900px) {
+      header {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+
+      .actions {
+        justify-content: flex-start;
+      }
+
+      .stats {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .grid {
+        grid-template-columns: 1fr;
+      }
+
+      .bar-row {
+        grid-template-columns: 1fr 90px;
+        gap: 7px 10px;
+      }
+
+      .track {
+        grid-column: 1 / -1;
+        grid-row: 2;
+      }
+    }
+
+    @media (max-width: 560px) {
+      .shell {
+        width: min(100% - 20px, 1180px);
+        padding-top: 18px;
+      }
+
+      .stats {
+        grid-template-columns: 1fr;
+      }
+
+      .panel-head,
+      .status-bar {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      select,
+      button,
+      .source-link {
+        width: 100%;
+      }
+
+      .actions {
+        width: 100%;
+      }
+
+      th:nth-child(2),
+      td:nth-child(2) {
+        display: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header>
+      <div>
+        <h1>Stefadore Live Dashboard</h1>
+        <p class="subhead">Public YouTube engagement, refreshed by this local app.</p>
+      </div>
+      <div class="actions">
+        <button class="primary" id="refreshButton" type="button">Refresh now</button>
+        <a class="source-link" href="https://www.youtube.com/@stefadore" target="_blank" rel="noreferrer">Open Channel</a>
+      </div>
+    </header>
+
+    <section class="status-bar" aria-live="polite">
+      <div class="status"><span class="dot" id="statusDot"></span><span id="statusText">Starting</span></div>
+      <div id="timeText">Waiting for first update</div>
+    </section>
+
+    <section class="stats" aria-label="Channel totals">
+      <article class="stat"><span class="label">Videos</span><span class="value" id="totalVideos">0</span></article>
+      <article class="stat"><span class="label">Views</span><span class="value" id="totalViews">0</span></article>
+      <article class="stat"><span class="label">Video Likes</span><span class="value" id="totalLikes">0</span></article>
+      <article class="stat"><span class="label">Comments</span><span class="value" id="totalComments">0</span></article>
+      <article class="stat"><span class="label">Comment Likes</span><span class="value" id="totalCommentLikes">0</span></article>
+    </section>
+
+    <section class="grid">
+      <article class="panel">
+        <div class="panel-head">
+          <h2>Video Ranking</h2>
+          <select id="metricSelect" aria-label="Ranking metric">
+            <option value="views">Views</option>
+            <option value="likes">Video likes</option>
+            <option value="comment_count">Comments</option>
+            <option value="comment_likes">Comment likes</option>
+          </select>
+        </div>
+        <div class="chart" id="rankingChart"></div>
+      </article>
+
+      <article class="panel">
+        <div class="panel-head">
+          <h2>Comment Stream</h2>
+          <select id="commentFilter" aria-label="Comment filter">
+            <option value="all">All comments</option>
+            <option value="viewer">Viewer comments</option>
+            <option value="creator">Creator replies</option>
+          </select>
+        </div>
+        <div class="comments" id="commentList"></div>
+      </article>
+    </section>
+
+    <section class="panel table-panel">
+      <div class="panel-head">
+        <h2>Publishing Timeline</h2>
+      </div>
+      <div class="timeline">
+        <svg id="timeline" role="img" aria-label="Publishing timeline chart"></svg>
+        <div class="legend">
+          <span><i class="swatch"></i> Views</span>
+          <span><i class="swatch likes"></i> Likes</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel table-panel">
+      <div class="panel-head">
+        <h2>Video Data</h2>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Video</th>
+            <th>Date</th>
+            <th>Views</th>
+            <th>Likes</th>
+            <th>Comments</th>
+            <th>Comment Likes</th>
+          </tr>
+        </thead>
+        <tbody id="videoTable"></tbody>
+      </table>
+    </section>
+
+    <p class="note">The app refreshes public YouTube data every ten minutes while the local server is running. Private, deleted, held, or creator-only analytics are not included.</p>
+  </main>
+
+  <script>
+    let videos = [];
+    let comments = [];
+    let statusPayload = null;
+    const formatNumber = new Intl.NumberFormat("en-US");
+    const metricLabels = {
+      views: "views",
+      likes: "likes",
+      comment_count: "comments",
+      comment_likes: "comment likes"
+    };
+    const metricClasses = {
+      views: "",
+      likes: "likes",
+      comment_count: "comments",
+      comment_likes: "comments"
+    };
+
+    function formatDate(raw) {
+      if (!raw) return "";
+      if (raw.includes("-")) return raw;
+      return `${raw.slice(0, 4)}-${raw.slice(4, 6)}-${raw.slice(6, 8)}`;
+    }
+
+    function formatTime(raw) {
+      if (!raw) return "Using saved data until the first live refresh finishes";
+      return new Date(raw).toLocaleString([], { dateStyle: "medium", timeStyle: "short" });
+    }
+
+    function setStatus(payload) {
+      const dot = document.getElementById("statusDot");
+      const text = document.getElementById("statusText");
+      const time = document.getElementById("timeText");
+      const button = document.getElementById("refreshButton");
+      dot.className = "dot";
+      button.disabled = payload.status === "refreshing";
+
+      if (payload.status === "refreshing") {
+        dot.classList.add("refreshing");
+        text.textContent = "Refreshing from YouTube";
+      } else if (payload.status === "error") {
+        dot.classList.add("error");
+        text.textContent = "Refresh error";
+      } else {
+        text.textContent = "Live app running";
+      }
+
+      const updated = `Last update: ${formatTime(payload.lastUpdated)}`;
+      const error = payload.error ? ` · ${payload.error}` : "";
+      time.textContent = `${updated}${error}`;
+    }
+
+    function renderTotals(totals) {
+      document.getElementById("totalVideos").textContent = formatNumber.format(totals.videos || 0);
+      document.getElementById("totalViews").textContent = formatNumber.format(totals.views || 0);
+      document.getElementById("totalLikes").textContent = formatNumber.format(totals.likes || 0);
+      document.getElementById("totalComments").textContent = formatNumber.format(totals.comments || 0);
+      document.getElementById("totalCommentLikes").textContent = formatNumber.format(totals.commentLikes || 0);
+    }
+
+    function renderRanking(metric) {
+      const chart = document.getElementById("rankingChart");
+      chart.innerHTML = "";
+      if (!videos.length) {
+        chart.innerHTML = '<div class="empty">Waiting for video data.</div>';
+        return;
+      }
+
+      const sorted = [...videos].sort((a, b) => (b[metric] || 0) - (a[metric] || 0) || (b.views || 0) - (a.views || 0));
+      const max = Math.max(...sorted.map((row) => row[metric] || 0), 1);
+
+      for (const row of sorted) {
+        const line = document.createElement("div");
+        line.className = "bar-row";
+
+        const title = document.createElement("a");
+        title.className = "video-title";
+        title.href = row.url;
+        title.target = "_blank";
+        title.rel = "noreferrer";
+        title.textContent = row.title;
+
+        const track = document.createElement("div");
+        track.className = "track";
+        const fill = document.createElement("div");
+        fill.className = `fill ${metricClasses[metric]}`;
+        fill.style.width = `${Math.max(4, ((row[metric] || 0) / max) * 100)}%`;
+        track.appendChild(fill);
+
+        const metricText = document.createElement("div");
+        metricText.className = "metric";
+        metricText.textContent = `${formatNumber.format(row[metric] || 0)} ${metricLabels[metric]}`;
+
+        line.append(title, track, metricText);
+        chart.appendChild(line);
+      }
+    }
+
+    function renderComments(filter) {
+      const list = document.getElementById("commentList");
+      list.innerHTML = "";
+      const filtered = comments.filter((comment) => {
+        if (filter === "creator") return (comment.author || "").toLowerCase() === "@stefadore";
+        if (filter === "viewer") return (comment.author || "").toLowerCase() !== "@stefadore";
+        return true;
+      });
+
+      if (!filtered.length) {
+        list.innerHTML = '<div class="empty">No comments match this filter.</div>';
+        return;
+      }
+
+      for (const comment of filtered) {
+        const item = document.createElement("article");
+        item.className = `comment ${comment.parent === "root" ? "" : "reply"}`;
+
+        const top = document.createElement("div");
+        top.className = "comment-top";
+
+        const author = document.createElement("span");
+        author.className = "author";
+        author.textContent = comment.author || "Unknown";
+
+        const meta = document.createElement("span");
+        meta.textContent = `${comment.date || "No date"} · ${formatNumber.format(comment.likes || 0)} likes`;
+
+        const body = document.createElement("p");
+        body.textContent = comment.text || "";
+
+        const video = document.createElement("a");
+        video.className = "comment-video";
+        video.href = comment.video_url;
+        video.target = "_blank";
+        video.rel = "noreferrer";
+        video.textContent = comment.video_title;
+
+        top.append(author, meta);
+        item.append(top, body, video);
+        list.appendChild(item);
+      }
+    }
+
+    function renderTimeline() {
+      const svg = document.getElementById("timeline");
+      const width = 760;
+      const height = 250;
+      const margin = { top: 18, right: 24, bottom: 34, left: 36 };
+      const innerWidth = width - margin.left - margin.right;
+      const innerHeight = height - margin.top - margin.bottom;
+      const sorted = [...videos].sort((a, b) => (a.upload_date || "").localeCompare(b.upload_date || ""));
+
+      svg.setAttribute("viewBox", `0 0 ${width} ${height}`);
+      if (!sorted.length) {
+        svg.innerHTML = `<text x="24" y="48" font-size="14" fill="#607080">Waiting for timeline data.</text>`;
+        return;
+      }
+
+      const maxViews = Math.max(...sorted.map((row) => row.views || 0), 1);
+      const maxLikes = Math.max(...sorted.map((row) => row.likes || 0), 1);
+      const x = (index) => margin.left + (index / Math.max(sorted.length - 1, 1)) * innerWidth;
+      const yViews = (value) => margin.top + innerHeight - (value / maxViews) * innerHeight;
+      const yLikes = (value) => margin.top + innerHeight - (value / maxLikes) * innerHeight;
+      const points = (field, scale) => sorted.map((row, index) => `${x(index)},${scale(row[field] || 0)}`).join(" ");
+
+      svg.innerHTML = `
+        <line class="axis" x1="${margin.left}" y1="${margin.top + innerHeight}" x2="${margin.left + innerWidth}" y2="${margin.top + innerHeight}"></line>
+        <line class="axis" x1="${margin.left}" y1="${margin.top}" x2="${margin.left}" y2="${margin.top + innerHeight}"></line>
+        ${[0.25, 0.5, 0.75].map((step) => `<line class="gridline" x1="${margin.left}" y1="${margin.top + innerHeight * step}" x2="${margin.left + innerWidth}" y2="${margin.top + innerHeight * step}"></line>`).join("")}
+        <polyline points="${points("views", yViews)}" fill="none" stroke="#a83279" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"></polyline>
+        <polyline points="${points("likes", yLikes)}" fill="none" stroke="#d63384" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"></polyline>
+        ${sorted.map((row, index) => `<circle class="chart-dot" cx="${x(index)}" cy="${yViews(row.views || 0)}" r="5" fill="#a83279"><title>${formatDate(row.upload_date)} · ${row.views || 0} views · ${row.title}</title></circle>`).join("")}
+        ${sorted.map((row, index) => `<circle class="chart-dot" cx="${x(index)}" cy="${yLikes(row.likes || 0)}" r="4" fill="#d63384"><title>${formatDate(row.upload_date)} · ${row.likes || 0} likes · ${row.title}</title></circle>`).join("")}
+        <text x="${margin.left}" y="${height - 8}" font-size="11" fill="#607080">${formatDate(sorted[0].upload_date)}</text>
+        <text x="${margin.left + innerWidth}" y="${height - 8}" text-anchor="end" font-size="11" fill="#607080">${formatDate(sorted[sorted.length - 1].upload_date)}</text>
+      `;
+    }
+
+    function renderTable() {
+      const table = document.getElementById("videoTable");
+      table.innerHTML = "";
+      for (const row of videos) {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td><a href="${row.url}" target="_blank" rel="noreferrer"></a></td>
+          <td>${formatDate(row.upload_date || row.date)}</td>
+          <td class="num">${formatNumber.format(row.views || 0)}</td>
+          <td class="num">${formatNumber.format(row.likes || 0)}</td>
+          <td class="num">${formatNumber.format(row.comment_count || 0)}</td>
+          <td class="num">${formatNumber.format(row.comment_likes || 0)}</td>
+        `;
+        tr.querySelector("a").textContent = row.title;
+        table.appendChild(tr);
+      }
+    }
+
+    function renderAll(payload) {
+      statusPayload = payload;
+      videos = payload.videos || [];
+      comments = payload.comments || [];
+      setStatus(payload);
+      renderTotals(payload.totals || {});
+      renderRanking(document.getElementById("metricSelect").value);
+      renderComments(document.getElementById("commentFilter").value);
+      renderTimeline();
+      renderTable();
+    }
+
+    async function loadData() {
+      try {
+        const response = await fetch("/api/data", { cache: "no-store" });
+        if (!response.ok) throw new Error(`Server returned ${response.status}`);
+        renderAll(await response.json());
+      } catch (error) {
+        setStatus({ status: "error", error: error.message, lastUpdated: statusPayload?.lastUpdated });
+      }
+    }
+
+    async function refreshNow() {
+      const button = document.getElementById("refreshButton");
+      button.disabled = true;
+      try {
+        const response = await fetch("/api/refresh", { method: "POST", cache: "no-store" });
+        if (!response.ok && response.status !== 202) throw new Error(`Server returned ${response.status}`);
+        renderAll(await response.json());
+      } catch (error) {
+        setStatus({ status: "error", error: error.message, lastUpdated: statusPayload?.lastUpdated });
+      } finally {
+        setTimeout(loadData, 1200);
+      }
+    }
+
+    document.getElementById("metricSelect").addEventListener("change", (event) => renderRanking(event.target.value));
+    document.getElementById("commentFilter").addEventListener("change", (event) => renderComments(event.target.value));
+    document.getElementById("refreshButton").addEventListener("click", refreshNow);
+
+    loadData();
+    setInterval(loadData, 30000);
+  </script>
+</body>
+</html>
