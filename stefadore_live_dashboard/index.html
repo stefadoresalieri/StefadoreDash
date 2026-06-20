@@ -297,6 +297,23 @@
       white-space: nowrap;
     }
 
+    .ranking-more {
+      justify-self: start;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 10px 14px;
+      background: #fff;
+      color: var(--teal);
+      font: inherit;
+      font-size: 13px;
+      font-weight: 800;
+      cursor: pointer;
+    }
+
+    .ranking-more:hover {
+      border-color: var(--teal);
+    }
+
     .comments {
       display: grid;
       gap: 12px;
@@ -594,6 +611,8 @@
     let videos = [];
     let comments = [];
     let statusPayload = null;
+    let rankingExpanded = false;
+    const rankingPreviewLimit = 10;
     const formatNumber = new Intl.NumberFormat("en-US");
     const metricLabels = {
       views: "views",
@@ -703,7 +722,9 @@
       const sorted = [...videos].sort((a, b) => (b[metric] || 0) - (a[metric] || 0) || (b.views || 0) - (a.views || 0));
       const max = Math.max(...sorted.map((row) => row[metric] || 0), 1);
 
-      for (const row of sorted) {
+      const visibleRows = rankingExpanded ? sorted : sorted.slice(0, rankingPreviewLimit);
+
+      for (const row of visibleRows) {
         const line = document.createElement("div");
         line.className = "bar-row";
 
@@ -727,6 +748,19 @@
 
         line.append(title, track, metricText);
         chart.appendChild(line);
+      }
+
+      if (sorted.length > rankingPreviewLimit) {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "ranking-more";
+        const hiddenCount = sorted.length - rankingPreviewLimit;
+        button.textContent = rankingExpanded ? "Show less" : `Show more (${formatNumber.format(hiddenCount)} more)`;
+        button.addEventListener("click", () => {
+          rankingExpanded = !rankingExpanded;
+          renderRanking(metric);
+        });
+        chart.appendChild(button);
       }
     }
 
@@ -870,10 +904,14 @@
     }
 
     document.getElementById("videoTypeFilter").addEventListener("change", () => {
+      rankingExpanded = false;
       applyVideoTypeFilter();
       renderFilteredViews();
     });
-    document.getElementById("metricSelect").addEventListener("change", (event) => renderRanking(event.target.value));
+    document.getElementById("metricSelect").addEventListener("change", (event) => {
+      rankingExpanded = false;
+      renderRanking(event.target.value);
+    });
     document.getElementById("commentFilter").addEventListener("change", (event) => renderComments(event.target.value));
     document.getElementById("refreshButton").addEventListener("click", refreshNow);
 
