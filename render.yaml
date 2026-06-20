@@ -3,8 +3,8 @@ services:
     name: stefadore-dash
     runtime: python
     plan: free
-    buildCommand: pip install -r stefadore_live_dashboard/requirements.txt
-    startCommand: python stefadore_live_dashboard/server.py
+    buildCommand: pip install -r requirements.txt
+    startCommand: python start.py
     envVars:
       - key: STEFADORE_DASHBOARD_HOST
         value: 0.0.0.0
