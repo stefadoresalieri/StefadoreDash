@@ -584,6 +584,15 @@
     <section class="panel table-panel">
       <div class="panel-head">
         <h2>Publishing Timeline</h2>
+        <select id="timelineRange" aria-label="Timeline date range">
+          <option value="all">All time</option>
+          <option value="1">1 month</option>
+          <option value="3">3 months</option>
+          <option value="5">5 months</option>
+          <option value="6">6 months</option>
+          <option value="12">1 year</option>
+          <option value="24">2 years</option>
+        </select>
       </div>
       <div class="timeline">
         <svg id="timeline" role="img" aria-label="Publishing timeline chart"></svg>
@@ -653,6 +662,34 @@
     function formatTime(raw) {
       if (!raw) return "Using saved data until the first live refresh finishes";
       return new Date(raw).toLocaleString([], { dateStyle: "medium", timeStyle: "short" });
+    }
+
+    function parseVideoDate(row) {
+      const formatted = formatDate(row.upload_date || row.date);
+      const timestamp = Date.parse(`${formatted}T00:00:00`);
+      return Number.isNaN(timestamp) ? null : new Date(timestamp);
+    }
+
+    function selectedTimelineRange() {
+      return document.getElementById("timelineRange").value;
+    }
+
+    function videosForTimelineRange() {
+      const datedVideos = videos
+        .map((row) => ({ row, date: parseVideoDate(row) }))
+        .filter((entry) => entry.date);
+      const range = selectedTimelineRange();
+
+      if (range === "all" || !datedVideos.length) return datedVideos.map((entry) => entry.row);
+
+      const months = Number(range);
+      const latestDate = new Date(Math.max(...datedVideos.map((entry) => entry.date.getTime())));
+      const startDate = new Date(latestDate);
+      startDate.setMonth(startDate.getMonth() - months);
+
+      return datedVideos
+        .filter((entry) => entry.date >= startDate && entry.date <= latestDate)
+        .map((entry) => entry.row);
     }
 
     function videoTypeFor(row) {
@@ -827,11 +864,17 @@
       const margin = { top: 18, right: 24, bottom: 34, left: 36 };
       const innerWidth = width - margin.left - margin.right;
       const innerHeight = height - margin.top - margin.bottom;
-      const sorted = [...videos].sort((a, b) => (a.upload_date || "").localeCompare(b.upload_date || ""));
-
       svg.setAttribute("viewBox", `0 0 ${width} ${height}`);
-      if (!sorted.length) {
+      if (!videos.length) {
         svg.innerHTML = `<text x="24" y="48" font-size="14" fill="#607080">Waiting for timeline data.</text>`;
+        return;
+      }
+
+      const timelineVideos = videosForTimelineRange();
+      const sorted = [...timelineVideos].sort((a, b) => formatDate(a.upload_date || a.date).localeCompare(formatDate(b.upload_date || b.date)));
+
+      if (!sorted.length) {
+        svg.innerHTML = `<text x="24" y="48" font-size="14" fill="#607080">No videos match this timeline range.</text>`;
         return;
       }
 
@@ -925,6 +968,7 @@
       renderRanking(event.target.value);
     });
     document.getElementById("commentFilter").addEventListener("change", (event) => renderComments(event.target.value));
+    document.getElementById("timelineRange").addEventListener("change", renderTimeline);
     document.getElementById("refreshButton").addEventListener("click", refreshNow);
 
     loadData();
